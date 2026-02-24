@@ -133,7 +133,12 @@ export default function Home(): JSX.Element {
             setSelectedDate(dateKey);
             setDateModalOpen(true);
           }}
-          onVisibleRangeChange={(year, month) => setVisibleMonth({ year, month })}
+          onVisibleRangeChange={(year, month) => {
+            setVisibleMonth((prev) => {
+              if (prev.year === year && prev.month === month) return prev;
+              return { year, month };
+            });
+          }}
         />
         <StatsPanel monthlyCounts={monthlyCounts} totalCounts={totalCounts} />
       </section>
