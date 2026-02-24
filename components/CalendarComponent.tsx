@@ -31,7 +31,10 @@ export function CalendarComponent({
   };
 
   const dayCellContent = (arg: { date: Date; dayNumberText: string }): JSX.Element => {
-    const key = arg.date.toISOString().split("T")[0];
+    const year = arg.date.getFullYear();
+    const month = String(arg.date.getMonth() + 1).padStart(2, "0");
+    const day = String(arg.date.getDate()).padStart(2, "0");
+    const key = `${year}-${month}-${day}`;
     const emojis = (dateEntries[key] ?? [])
       .map((symbolId) => symbolById.get(symbolId)?.emoji)
       .filter((emoji): emoji is string => Boolean(emoji));
