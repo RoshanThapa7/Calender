@@ -11,6 +11,17 @@ import { DateEntries, StorageData, SymbolItem } from "@/types";
 
 const STORAGE_KEY = "cute-calendar-tracker";
 
+interface LinePoint {
+  label: string;
+  values: Record<string, number>;
+}
+
+interface LineSeries {
+  id: string;
+  label: string;
+  emoji: string;
+}
+
 
 function buildCounts(dateEntries: DateEntries, symbols: SymbolItem[], filterMonth?: { year: number; month: number }) {
   const countById = new Map<string, number>();
@@ -36,6 +47,67 @@ function buildCounts(dateEntries: DateEntries, symbols: SymbolItem[], filterMont
     .sort((a, b) => b.count - a.count);
 }
 
+function buildMonthlyLineData(
+  dateEntries: DateEntries,
+  symbols: SymbolItem[],
+  month: { year: number; month: number },
+): { points: LinePoint[]; series: LineSeries[] } {
+  const lastDay = new Date(month.year, month.month + 1, 0).getDate();
+  const series = symbols.map((symbol) => ({ id: symbol.id, label: symbol.name, emoji: symbol.emoji }));
+
+  const points: LinePoint[] = Array.from({ length: lastDay }, (_, index) => ({
+    label: String(index + 1),
+    values: {},
+  }));
+
+  points.forEach((point) => {
+    series.forEach((item) => {
+      point.values[item.id] = 0;
+    });
+  });
+
+  Object.entries(dateEntries).forEach(([dateKey, symbolIds]) => {
+    const date = new Date(`${dateKey}T00:00:00`);
+    if (date.getFullYear() !== month.year || date.getMonth() !== month.month) return;
+    const point = points[date.getDate() - 1];
+    symbolIds.forEach((symbolId) => {
+      if (point.values[symbolId] !== undefined) {
+        point.values[symbolId] += 1;
+      }
+    });
+  });
+
+  return { points, series };
+}
+
+function buildAllTimeLineData(dateEntries: DateEntries, symbols: SymbolItem[]): { points: LinePoint[]; series: LineSeries[] } {
+  const series = symbols.map((symbol) => ({ id: symbol.id, label: symbol.name, emoji: symbol.emoji }));
+  const monthMap = new Map<string, LinePoint>();
+
+  Object.entries(dateEntries).forEach(([dateKey, symbolIds]) => {
+    const [year, month] = dateKey.split("-");
+    const label = `${year}-${month}`;
+    if (!monthMap.has(label)) {
+      const values: Record<string, number> = {};
+      series.forEach((item) => {
+        values[item.id] = 0;
+      });
+      monthMap.set(label, { label, values });
+    }
+
+    const point = monthMap.get(label);
+    if (!point) return;
+    symbolIds.forEach((symbolId) => {
+      if (point.values[symbolId] !== undefined) {
+        point.values[symbolId] += 1;
+      }
+    });
+  });
+
+  const points = Array.from(monthMap.values()).sort((a, b) => a.label.localeCompare(b.label));
+  return { points, series };
+}
+
 export default function Home(): JSX.Element {
   const [symbols, setSymbols] = useState<SymbolItem[]>([]);
   const [dateEntries, setDateEntries] = useState<DateEntries>({});
@@ -46,24 +118,28 @@ export default function Home(): JSX.Element {
     year: new Date().getFullYear(),
     month: new Date().getMonth(),
   });
+  const [isStorageLoaded, setIsStorageLoaded] = useState(false);
 
   useEffect(() => {
     const savedRaw = localStorage.getItem(STORAGE_KEY);
-    if (!savedRaw) return;
-
-    try {
-      const parsed = JSON.parse(savedRaw) as StorageData;
-      setSymbols(parsed.symbols ?? []);
-      setDateEntries(parsed.dateEntries ?? {});
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
+    if (savedRaw) {
+      try {
+        const parsed = JSON.parse(savedRaw) as StorageData;
+        setSymbols(parsed.symbols ?? []);
+        setDateEntries(parsed.dateEntries ?? {});
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
     }
+
+    setIsStorageLoaded(true);
   }, []);
 
   useEffect(() => {
+    if (!isStorageLoaded) return;
     const payload: StorageData = { symbols, dateEntries };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [symbols, dateEntries]);
+  }, [symbols, dateEntries, isStorageLoaded]);
 
   const selectedSymbolIds = selectedDate ? dateEntries[selectedDate] ?? [] : [];
 
@@ -72,6 +148,11 @@ export default function Home(): JSX.Element {
     [dateEntries, symbols, visibleMonth],
   );
   const totalCounts = useMemo(() => buildCounts(dateEntries, symbols), [dateEntries, symbols]);
+  const monthlyLineData = useMemo(
+    () => buildMonthlyLineData(dateEntries, symbols, visibleMonth),
+    [dateEntries, symbols, visibleMonth],
+  );
+  const allTimeLineData = useMemo(() => buildAllTimeLineData(dateEntries, symbols), [dateEntries, symbols]);
 
   const toggleSymbolOnDate = (symbolId: string): void => {
     if (!selectedDate) return;
@@ -140,7 +221,12 @@ export default function Home(): JSX.Element {
             });
           }}
         />
-        <StatsPanel monthlyCounts={monthlyCounts} totalCounts={totalCounts} />
+        <StatsPanel
+          monthlyCounts={monthlyCounts}
+          totalCounts={totalCounts}
+          monthlyLineData={monthlyLineData}
+          allTimeLineData={allTimeLineData}
+        />
       </section>
 
       <DateModal

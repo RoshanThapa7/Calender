@@ -39,12 +39,24 @@ export function CalendarComponent({
       .map((symbolId) => symbolById.get(symbolId)?.emoji)
       .filter((emoji): emoji is string => Boolean(emoji));
 
+    const emojiClassName =
+      emojis.length <= 1
+        ? "text-4xl leading-none"
+        : emojis.length === 2
+          ? "text-2xl leading-none"
+          : emojis.length <= 4
+            ? "text-lg leading-none"
+            : "text-sm leading-none";
+
     return (
       <div className="min-h-[80px] p-1">
         <p className="text-sm font-medium text-plum">{arg.dayNumberText}</p>
-        <div className="mt-1 flex flex-wrap gap-1">
+        <div className="mt-1 flex flex-wrap items-center gap-1">
           {emojis.map((emoji, index) => (
-            <span key={`${key}-${emoji}-${index}`} className="rounded-full bg-white/70 px-1.5 py-0.5 text-xs">
+            <span
+              key={`${key}-${emoji}-${index}`}
+              className={`rounded-2xl bg-white/75 px-1.5 py-0.5 ${emojiClassName}`}
+            >
               {emoji}
             </span>
           ))}
