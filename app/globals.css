@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply min-h-screen bg-gradient-to-br from-[#ffe8f1] via-[#fff0e4] to-[#ece3ff] text-plum antialiased;
+}
+
+.fc {
+  --fc-border-color: rgba(255, 255, 255, 0.7);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: rgba(255, 255, 255, 0.45);
+  --fc-button-bg-color: #6c4f75;
+  --fc-button-border-color: #6c4f75;
+  --fc-button-hover-bg-color: #5f4767;
+  --fc-button-hover-border-color: #5f4767;
+  --fc-button-active-bg-color: #5f4767;
+  --fc-button-active-border-color: #5f4767;
+}
+
+.fc .fc-toolbar-title {
+  @apply text-2xl font-semibold tracking-tight text-plum;
+}
+
+.fc .fc-button {
+  @apply rounded-2xl border-0 px-3 py-2 text-sm shadow transition-all duration-200 hover:scale-[1.02];
+}
+
+.fc .fc-daygrid-day-frame {
+  @apply transition-colors duration-200;
+}
+
+.fc .fc-daygrid-day:hover .fc-daygrid-day-frame {
+  @apply bg-white/65;
+}
+
+.fc .fc-day-today {
+  @apply bg-lavender/45;
+}
